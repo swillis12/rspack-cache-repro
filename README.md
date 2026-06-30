@@ -1,19 +1,40 @@
-# rspack-repro
+# Repro: rsbuild 2.1.1 persistent cache writes no pack files
 
-- [Rspack website](https://rspack.rs/)
-- [Rspack repo](https://github.com/web-infra-dev/rspack)
+Demonstrates a regression introduced in rsbuild 2.1.1 (rspack 2.1.x) where the
+persistent build cache creates the expected directory structure but never writes
+pack files, so every build runs at full cold-build time.
 
-A GitHub template for creating a Rspack minimal reproducible example.
+| Branch | rsbuild | Cache |
+|---|---|---|
+| `main` | 2.1.1 | **broken** — no pack files written |
+| `working` | 2.0.15 | working — warm builds ~3x faster |
 
-webpack is included for comparing the outputs.
+## Reproduce
 
-## Usages
+```bash
+pnpm install
+pnpm run build:rsbuild   # run 1 — cold build, note the time
+pnpm run build:rsbuild   # run 2 — same time as run 1 (expected: significantly faster)
+pnpm run build:rsbuild   # run 3 — same time again + error:
+                         # "Rspack persistent cache save failed: Rspack FS Error:IO error: No such file or directory (os error 2)"
+```
 
-`pnpm run build` would both run Rspack and webpack with config `./rspack.config.mjs`
+After run 1, inspect the cache directory — subdirectories are created but no pack files are written:
 
-- Rspack will emits output in `./rspack-dist`
-- webpack will emits output in `./webpack-dist`
+```
+node_modules/.cache/rsbuild/
+└── rspack_v_2_1_1/
+    └── occasion_minimize/
+        (empty)
+```
 
-`./webpack-dist` and `./rspack-dist` are purposely not added to `.gitignore`.
+## Working version
 
-It is recommended to commit these files so we quickly compare the outputs.
+Switch to the `working` branch to confirm rsbuild 2.0.15 restores cache behavior:
+
+```bash
+git checkout working
+pnpm install
+pnpm run build:rsbuild   # run 1 — cold build
+pnpm run build:rsbuild   # run 2 — significantly faster (warm cache)
+```

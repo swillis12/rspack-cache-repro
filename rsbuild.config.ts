@@ -6,4 +6,7 @@ export default defineConfig({
       root: "./rsbuild-dist",
     },
   },
+  performance: {
+    buildCache: true,
+  },
 });
